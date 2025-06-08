@@ -1,0 +1,124 @@
+esphome:
+  name: "jarvis-one"
+  friendly_name: Jarvis One
+  name_add_mac_suffix: false
+  platformio_options:
+    board_build.flash_mode: dio
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_AUDIO_BOARD_CUSTOM: "y"
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  on_client_connected:
+        then:
+          - delay: 50ms
+          - micro_wake_word.start:
+  on_client_disconnected:
+        then:
+          - voice_assistant.stop: 
+
+# Allow Over-The-Air updates
+ota:
+ - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+captive_portal:
+
+web_server:
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: led_ww
+    rgb_order: GRB
+    chipset: ws2812    
+    pin: GPIO32
+    num_leds: 11
+    name: "LED bar"
+    effects:
+      - pulse:
+      - addressable_scan:
+          name: scan
+          move_interval: 100ms
+          scan_width: 1 
+
+i2s_audio:
+  - id: i2s # For microphone
+    i2s_lrclk_pin: GPIO26  #WS 
+    i2s_bclk_pin: GPIO25 #SCK
+
+microphone:
+  - platform: i2s_audio
+    id: va_mic
+    adc_type: external
+    i2s_din_pin: GPIO33 #SD
+    channel: left
+    i2s_audio_id: i2s
+#   pdm: false
+#   bits_per_sample: 32bit
+
+output:
+  - platform: gpio
+    pin: 
+      number: GPIO27
+      allow_other_uses: true
+    id: set_low_speaker
+
+speaker:
+    platform: i2s_audio
+    id: va_speaker
+    i2s_audio_id: i2s
+    dac_type: external
+    i2s_dout_pin:   
+      number: GPIO27 #DIN Pin of the MAX98357A Audio Amplifier
+      allow_other_uses: true    
+    channel: mono
+    bits_per_sample: 32bit
+    sample_rate: 16000
+
+micro_wake_word:
+  models:
+    - model: hey_jarvis
+  on_wake_word_detected:
+    - voice_assistant.start:
+    - light.turn_on:
+        id: led_ww           
+        red: 0%
+        green: 0%
+        blue: 100%
+        brightness: 80%
+        effect: scan
+    
+voice_assistant:
+  id: va
+  microphone: va_mic
+  speaker: va_speaker
+  noise_suppression_level: 2.0
+  volume_multiplier: 3.0
+  on_stt_end:
+       then: 
+         - light.turn_off: led_ww
+  on_error:
+          - micro_wake_word.start:  
+  on_end:
+        then:
+          - light.turn_off: led_ww
+          - wait_until:
+              not:
+                voice_assistant.is_running:
+          - micro_wake_word.start:   
+
