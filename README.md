@@ -12,4 +12,4 @@ Speaker amp:  https://www.amazon.com/dp/B0CPX73W44
 
 Speaker: https://www.amazon.com/dp/B0CDXQ8JTC 
 
-You also need an ESP32 and WS2812B (or similar) LED strip
+You also need an ESP32, WS2812B (or similar) LED strip, and a 100KΩ resistor.
