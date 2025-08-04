@@ -1,4 +1,6 @@
 esphome:
+  # more than 2 threads and the my compiler would crash.  
+  compile_process_limit: 2
   name: "jarvis-one"
   friendly_name: Jarvis One
   name_add_mac_suffix: false
